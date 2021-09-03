@@ -1012,8 +1012,13 @@ def db_open(db_file):
     sql_cmd = '''create table if not exists {} (idx text primary key,
                  log_timestamp text,
                  camera text,
-                 ave_speed real, speed_units text, image_path text,
-                 image_w integer, image_h integer, image_bigger integer,
+                 ave_speed real,
+                 speed_units text,
+                 image_path text,
+                 image blob,
+                 image_w integer,
+                 image_h integer,
+                 image_bigger integer,
                  direction text, plugin_name text,
                  cx integer, cy integer,
                  mw integer, mh integer, m_area integer,
@@ -1386,6 +1391,7 @@ def speed_camera():
                                 else:
                                     cv2.imwrite(filename, big_image)
 
+
                                 if motionCode:
                                     # ===========================================
                                     # Put your user code in userMotionCode() function
@@ -1405,15 +1411,15 @@ def speed_camera():
                                             log_time.minute,
                                             log_time.second,
                                             log_time.microsecond/100000))
-                                log_timestamp = ("%s%04d-%02d-%02d %02d:%02d:%02d%s" %
-                                                 (quote,
+                                log_timestamp = ("%04d-%02d-%02d %02d:%02d:%02d" %
+                                                 (
                                                   log_time.year,
                                                   log_time.month,
                                                   log_time.day,
                                                   log_time.hour,
                                                   log_time.minute,
                                                   log_time.second,
-                                                  quote))
+                                                  ))
                                 m_area = track_w*track_h
                                 if WEBCAM:
                                     camera = "WebCam"
@@ -1423,28 +1429,82 @@ def speed_camera():
                                     plugin_name = pluginName
                                 else:
                                     plugin_name = "None"
+
+                                # Read the written file to store as blob
+                                def get_binary_data(fname):
+                                    with open(fname, 'rb') as file:
+                                        blob = file.read()
+                                    return blob
+
+                                image_blob = get_binary_data(filename)
+
                                 # create the speed data list ready for db insert
                                 speed_data = (log_idx,
                                               log_timestamp,
                                               camera,
-                                              round(ave_speed, 2), speed_units, filename,
-                                              image_width, image_height, image_bigger,
-                                              travel_direction, plugin_name,
-                                              track_x, track_y,
-                                              track_w, track_h, m_area,
-                                              x_left, x_right,
-                                              y_upper, y_lower,
+                                              round(ave_speed, 2),
+                                              speed_units,
+                                              filename,
+                                              image_blob,
+                                              image_width,
+                                              image_height,
+                                              image_bigger,
+                                              travel_direction,
+                                              plugin_name,
+                                              track_x,
+                                              track_y,
+                                              track_w,
+                                              track_h,
+                                              m_area,
+                                              x_left,
+                                              x_right,
+                                              y_upper,
+                                              y_lower,
                                               max_speed_over,
-                                              MIN_AREA, track_counter,
-                                              cal_obj_px, cal_obj_mm, '', CAM_LOCATION)
+                                              MIN_AREA,
+                                              track_counter,
+                                              cal_obj_px,
+                                              cal_obj_mm,
+                                              '',
+                                              CAM_LOCATION)
 
                                 # Insert speed_data into sqlite3 database table
                                 # Note cam_location and status may not be in proper order
                                 # Unless speed table is recreated.
                                 try:
-                                    sql_cmd = '''insert into {} values {}'''.format(DB_TABLE, speed_data)
+                                    sql_cmd = '''
+                                        insert into {}
+                                        (
+                                        idx,
+                                        log_timestamp,
+                                        camera,
+                                        ave_speed,
+                                        speed_units,
+                                        image_path,
+                                        image,
+                                        image_w,
+                                        image_h,
+                                        image_bigger,
+                                        direction,
+                                        plugin_name,
+                                        cx,
+                                        cy,
+                                        mw,
+                                        mh,
+                                        m_area,
+                                        x_left,
+                                        x_right,
+                                        y_upper,
+                                        y_lower,
+                                        max_speed_over,
+                                        min_area,
+                                        track_counter,
+                                        cal_obj_px,
+                                        cal_obj_mm,
+                                        status,
+                                        cam_location) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''.format(DB_TABLE)
                                     db_conn = db_check(DB_PATH)
-                                    db_conn.execute(sql_cmd)
+                                    db_conn.execute(sql_cmd, speed_data)
                                     db_conn.commit()
                                     db_conn.close()
                                 except sqlite3.Error as e:
