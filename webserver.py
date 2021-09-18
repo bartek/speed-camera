@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
-import cgi
+import html
 import os
 import subprocess
 import socket
 import fcntl
 import struct
-import SocketServer
+import socketserver
 import sys
 import time
-import urllib
-from SimpleHTTPServer import SimpleHTTPRequestHandler
-from StringIO import StringIO
+import urllib.request, urllib.parse, urllib.error
+from http.server import SimpleHTTPRequestHandler
+from io import BytesIO
 
 PROG_VER = "ver 11.00 written by Claude Pageau"
 '''
@@ -47,11 +47,11 @@ CONFIG_FILE_PATH = os.path.join(BASE_DIR, "config.py")
 # Check if config file found and import variable settings.
 if not os.path.exists(CONFIG_FILE_PATH):
     print("ERROR - Cannot Import Configuration Variables.")
-    print("        Missing Configuration File %s" % CONFIG_FILE_PATH)
+    print(("        Missing Configuration File %s" % CONFIG_FILE_PATH))
     sys.exit(1)
 else:
     # Read Configuration variables from config.py file
-    print("Importing Configuration Variables from File %s" % CONFIG_FILE_PATH)
+    print(("Importing Configuration Variables from File %s" % CONFIG_FILE_PATH))
     from config import *
 
 os.chdir(web_server_root)
@@ -122,8 +122,8 @@ class DirectoryHandler(SimpleHTTPRequestHandler):
         else:
             # Sort by File Name
             list.sort(key=lambda a: a.lower(), reverse=web_list_sort_descending)
-        f = StringIO()
-        displaypath = cgi.escape(urllib.unquote(self.path))
+        f = BytesIO()
+        displaypath = html.escape(urllib.parse.unquote(self.path))
         # find index of first file or hyperlink
 
         file_found = False
@@ -136,42 +136,38 @@ class DirectoryHandler(SimpleHTTPRequestHandler):
             cnt += 1
 
         # Start HTML formatting code
-        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">')
-        f.write('<head>')
+        template = '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">'
+        template += '<head>'
+
         # Setup Meta Tags and better viewing on small screen devices
-        f.write('<meta "Content-Type" content="txt/html; charset=ISO-8859-1" />')
-        f.write('<meta name="viewport" content="width=device-width, initial-scale=1.0" />')
+        template += '<meta "Content-Type" content="txt/html; charset=ISO-8859-1" />'
+        template += '<meta name="viewport" content="width=device-width, initial-scale=1.0" />'
         if web_page_refresh_on:
-            f.write('<meta http-equiv="refresh" content="%s" />' % web_page_refresh_sec)
-        f.write('</head>')
+            template += '<meta http-equiv="refresh" content="900" />'
+        template += '</head>'
 
         tpath, cur_folder = os.path.split(self.path)
-        f.write("<html><title>%s %s</title>" % (web_page_title, self.path))
-        f.write("<body>")
-        # Start Left iframe Image Panel
-        f.write('<iframe width="%s" height="%s" align="left"'
-                % (web_iframe_width_usage, web_image_height))
-        if file_found:  # file was display it in left pane
-            f.write('src="%s" name="imgbox" id="imgbox" alt="%s">'
-                    % (list[cnt], web_page_title))
-        else:  # No files found so blank left pane
-            f.write('src="%s" name="imgbox" id="imgbox" alt="%s">'
-                    % ("about:blank", web_page_title))
+        template += '<html><body>'
 
-        f.write('<p>iframes are not supported by your browser.</p></iframe>')
+        # Start Left iframe Image Panel
+        template += '<iframe width="%s" height="%s" align="left"' % (web_iframe_width_usage, web_image_height)
+        if file_found:  # file was display it in left pane
+            template += 'src="%s" name="imgbox" id="imgbox" alt="%s">' % (list[cnt], web_page_title)
+        else:  # No files found so blank left pane
+            template += 'src="%s" name="imgbox" id="imgbox" alt="%s">' % ("about:blank", web_page_title)
+
+        template += '<p>iframes are not supported by your browser.</p></iframe>'
         # Start Right File selection List Panel
         list_style = '<div style="height: ' + web_list_height + 'px; overflow: auto; white-space: nowrap;">'
-        f.write(list_style)
-        # f.write('<center><b>%s</b></center>' % (self.path))
+        template += list_style
         # Show a refresh button at top of right pane listing
         refresh_button = ('''<FORM>&nbsp;&nbsp;<INPUT TYPE="button" onClick="history.go(0)"
 VALUE="Refresh">&nbsp;&nbsp;<b>%s</b></FORM>''' % list_title)
-        f.write('%s' % refresh_button)
-        f.write('<ul name="menu" id="menu" style="list-style-type:none; padding-left: 4px">')
+        template += '%s' % refresh_button
+        template += '<ul name="menu" id="menu" style="list-style-type:none; padding-left: 4px">'
         # Create the formatted list of right panel hyper-links to files in the specified directory
         if not self.path is "/":   # Display folder Back arrow navigation if not in web root
-            f.write('<li><a href="%s" >%s</a></li>\n'
-                    % (urllib.quote(".."), cgi.escape("< BACK")))
+            template += '<li><a href="%s" >%s</a></li>\n' % (urllib.parse.quote(".."), html.escape("< BACK"))
         display_entries = 0
         file_found = False
         for name in list:
@@ -188,31 +184,26 @@ VALUE="Refresh">&nbsp;&nbsp;<b>%s</b></FORM>''' % list_title)
             if os.path.isdir(fullname):   # check if entry is a directory
                 displayname = name + "/"
                 linkname = os.path.join(displaypath, displayname)
-                f.write('<li><a href="%s" >%s</a></li>\n'
-                        % (urllib.quote(linkname), cgi.escape(displayname)))
+                template += '<li><a href="%s" >%s</a></li>\n' % (urllib.parse.quote(linkname), html.escape(displayname))
             else:
-                f.write('<li><a href="%s" target="imgbox">%s</a> - %s</li>\n'
-                        % (urllib.quote(linkname), cgi.escape(displayname), date_modified))
+                template += '<li><a href="%s" target="imgbox">%s</a> - %s</li>\n' % (urllib.parse.quote(linkname), html.escape(displayname), date_modified)
 
         if (not self.path is "/") and display_entries > 35:   # Display folder Back arrow navigation if not in web root
-            f.write('<li><a href="%s" >%s</a></li>\n' % (urllib.quote(".."), cgi.escape("< BACK")))
-        f.write('</ul></div><p><b>')
+            template += '<li><a href="%s" >%s</a></li>\n' % (urllib.parse.quote(".."), html.escape("< BACK"))
+        template += '</ul></div><p><b>'
         drive_status = df(MNT_POINT)
-        f.write('<div style="float: left; padding-left: 40px;">Web Root is [ %s ]  %s</div>' %
-                (web_server_root, drive_status))
-        f.write('<div style="text-align: center;">%s</div>' % web_page_title)
+        template += '<div style="float: left; padding-left: 40px;">Web Root is [ %s ]  %s</div>' % (web_server_root, drive_status)
+        template += '<div style="text-align: center;">%s</div>' % web_page_title
 
         if web_page_refresh_on:
-            f.write('<div style="float: left; padding-left: 40px;">Auto Refresh = %s sec</div>' % web_page_refresh_sec)
+            template += '<div style="float: left; padding-left: 40px;">Auto Refresh = %s sec</div>' % web_page_refresh_sec
 
         if web_max_list_entries > 1:
-            f.write('<div style="text-align: right; padding-right: 40px;">Listing Only %i of %i Files in %s</div>'
-                    % (display_entries, all_entries, self.path))
+            template += '<div style="text-align: right; padding-right: 40px;">Listing Only %i of %i Files in %s</div>' % (display_entries, all_entries, self.path)
         else:
-            f.write('<div style="text-align: right; padding-right: 50px;">Listing All %i Files in %s</div>'
-                    % (all_entries, self.path))
+            template += '<div style="text-align: right; padding-right: 50px;">Listing All %i Files in %s</div>' % (all_entries, self.path)
         # Display web refresh info only if setting is turned on
-        f.write('</b></p>')
+        template += '</b></p>'
         length = f.tell()
         f.seek(0)
         self.send_response(200)
@@ -224,10 +215,10 @@ VALUE="Refresh">&nbsp;&nbsp;<b>%s</b></FORM>''' % list_title)
 
 # Start Web Server Processing
 os.chdir(web_server_root)
-SocketServer.TCPServer.allow_reuse_address = True
-httpd = SocketServer.TCPServer(("", web_server_port), DirectoryHandler)
+socketserver.TCPServer.allow_reuse_address = True
+httpd = socketserver.TCPServer(("", web_server_port), DirectoryHandler)
 
-net_interface_names = [ b'eth0', b'wlan0' ]   # byte string list of interface names to check
+net_interface_names = [ b'eth0', b'wlan0', b'en0' ]   # byte string list of interface names to check
 ip_list = []
 for my_if in net_interface_names:
     my_ip = get_ip_address(my_if)
@@ -235,18 +226,18 @@ for my_if in net_interface_names:
         ip_list.append(my_ip)
 
 print("----------------------------------------------------------------")
-print("%s %s" % (PROG_NAME, PROG_VER))
+print(("%s %s" % (PROG_NAME, PROG_VER)))
 print("---------------------------- Settings --------------------------")
-print("Server  - web_page_title   = %s" % web_page_title)
-print("          web_server_root  = %s/%s" % (BASE_DIR, web_server_root))
-print("          web_server_port  = %i " % web_server_port)
-print("Content - web_image_height = %s px (height of content)" % web_image_height)
-print("          web_iframe_width = %s  web_iframe_height = %s" % (web_iframe_width, web_iframe_height))
-print("          web_iframe_width_usage = %s (of avail screen)" % (web_iframe_width_usage))
-print("          web_page_refresh_sec = %s  (default=180 sec)" % web_page_refresh_sec)
-print("          web_page_blank = %s ( True=blank left pane until item selected)" % web_page_blank)
-print("Listing - web_max_list_entries = %s ( 0=all )" % web_max_list_entries)
-print("          web_list_by_datetime = %s  sort_decending = %s" % (web_list_by_datetime, web_list_sort_descending))
+print(("Server  - web_page_title   = %s" % web_page_title))
+print(("          web_server_root  = %s/%s" % (BASE_DIR, web_server_root)))
+print(("          web_server_port  = %i " % web_server_port))
+print(("Content - web_image_height = %s px (height of content)" % web_image_height))
+print(("          web_iframe_width = %s  web_iframe_height = %s" % (web_iframe_width, web_iframe_height)))
+print(("          web_iframe_width_usage = %s (of avail screen)" % (web_iframe_width_usage)))
+print(("          web_page_refresh_sec = %s  (default=180 sec)" % web_page_refresh_sec))
+print(("          web_page_blank = %s ( True=blank left pane until item selected)" % web_page_blank))
+print(("Listing - web_max_list_entries = %s ( 0=all )" % web_max_list_entries))
+print(("          web_list_by_datetime = %s  sort_decending = %s" % (web_list_by_datetime, web_list_sort_descending)))
 print("----------------------------------------------------------------")
 print("From a computer on the same LAN. Use a Web Browser to access this server at")
 print("Type the URL below into the browser url bar then hit enter key.")
@@ -256,7 +247,7 @@ if not ip_list:
     print("        Check Network Interfaces and Try Again")
 else:
     for myip in ip_list:
-        print("                 http://%s:%i"  % (myip, web_server_port))
+        print(("                 http://%s:%i"  % (myip, web_server_port)))
 print("")
 print("IMPORTANT: If You Get - socket.error: [Errno 98] Address already in use")
 print("           Check for Another app using port or Wait a minute for webserver to timeout and Retry.")
@@ -267,12 +258,12 @@ try:
 except KeyboardInterrupt:
     print("")
     print("User Pressed ctrl-c")
-    print("%s %s" % (PROG_NAME, PROG_VER))
+    print(("%s %s" % (PROG_NAME, PROG_VER)))
     print("Exiting Bye ...")
     httpd.shutdown()
     httpd.socket.close()
 except IOError as e:
-    print("I/O error({0}): {1}".format(e.errno, e.strerror))
+    print(("I/O error({0}): {1}".format(e.errno, e.strerror)))
 
 
 

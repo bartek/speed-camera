@@ -11,13 +11,13 @@
 
 # Calibration Settings
 # --------------------
-calibrate = True         # Create a calibration image file with calibration hash markers 10 px per mark
+calibrate = False        # Create a calibration image file with calibration hash markers 10 px per mark
 
 cal_obj_px_L2R = 80      # L2R Moving Objects, Length of a calibration object in pixels
 cal_obj_mm_L2R = 4700.0  # L2R Moving Objects, Length of the calibration object in millimetres
 
 cal_obj_px_R2L = 85      # R2L Moving Objects, Length of a calibration object in pixels
-cal_obj_mm_R2L = 4700.0  # R2L Moving Objects, Length of the calibration object in millimetres
+cal_obj_mm_R2L = 4400.0  # R2L Moving Objects, Length of the calibration object in millimetres
 
 # Note if tested speed is too low increase appropriate cal_obj_mm  value and redo speed test for desired direction.
 # IMPORTANT - If plugins Enabled Edit Settings in specified plugin file located in plugins folder.
@@ -25,7 +25,7 @@ cal_obj_mm_R2L = 4700.0  # R2L Moving Objects, Length of the calibration object 
 # Plugins overlay the config.py variable settings
 # -----------------------------------------------
 pluginEnable = False
-pluginName = "picam240" # Specify filename in plugins subfolder without .py extension per below
+pluginName = "webcam480" # Specify filename in plugins subfolder without .py extension per below
                         # picam240, webcam240 (Recommended for RPI2 or greater)
                         # picam480, webcam480, picam720, webcam720  (can use RPI3 but Test)
                         # picam1080   (Experimental Not Recommended)
@@ -34,7 +34,7 @@ pluginName = "picam240" # Specify filename in plugins subfolder without .py exte
 # Display opencv windows on gui desktop
 # gui_window_on suppresses All Windows if False
 # ----------------------------------------------
-gui_window_on = False  # True= Turn On All desktop GUI openCV windows. False=Don't Show (req'd for SSH) .
+gui_window_on = True  # True= Turn On All desktop GUI openCV windows. False=Don't Show (req'd for SSH) .
 gui_show_camera = True # True=Show the camera on gui windows. False=Don't Show (useful for image_sign)
 show_thresh_on = False # Display desktop GUI openCV cropped threshold window. True=Show, False=Don't Show
 show_crop_on = False   # Same as show_thresh_on but in color. True=Show, False=Don't Show (Default)
@@ -50,7 +50,7 @@ logFilePath = 'speed-cam.log'  # Location of log file when loggingToFile=True
 # Motion Event Settings
 # ---------------------
 SPEED_MPH = False      # Set Speed Units   kph=False  mph=True
-track_counter = 6      # Default= 6 Number of Consecutive Motion Events to trigger speed photo. Adjust to suit.
+track_counter = 9      # Default= 6 Number of Consecutive Motion Events to trigger speed photo. Adjust to suit.
                        # Suggest single core cpu=4-7 quad core=8-15 but adjust to smooth erratic readings due to contour jumps
 MIN_AREA = 200         # Default= 200 Exclude all contours less than or equal to this sq-px Area
 show_out_range = True  # Default= True Show Out of Range Events per x_diff settings below False= Off
@@ -59,15 +59,15 @@ x_diff_min = 1         # Default= 1 Exclude if min px away <= last event x posit
 x_buf_adjust = 10      # Default= 10 Divides motion Rect x for L&R Buffer Space to Ensure contours are in
 track_timeout = 0.5    # Default= 0.5 Optional seconds to wait after track End (Avoids dual tracking)
 event_timeout = 0.3    # Default= 0.3 seconds to wait for next motion event before starting new track
-max_speed_over = 0     # Exclude track if Speed less than or equal to value specified 0=All
+max_speed_over = 20     # Exclude track if Speed less than or equal to value specified 0=All
                        # Can be useful to exclude pedestrians and/or bikes, Etc or track only fast objects
 
 # Note: To see motion tracking crop area on images, Set variable image_show_motion_area = True
 
 # Allow user to customize the motion crop area (width) x values
 # If variable not found then values will be set automatically based on image size.
-# x_left = 50          # uncomment and change values to override auto calculate
-# x_right = 300        # uncomment and change values to override auto calculate
+x_left = 20          # uncomment and change values to override auto calculate
+x_right = 300        # uncomment and change values to override auto calculate
 
 # Allow user to customize the motion crop area (height) y values
 # If variables not found then values will be set automatically base on image size.
@@ -80,7 +80,7 @@ CAM_LOCATION = 'None'  # Specify an address, physical location Etc for camera
 WEBCAM = False         # Default= False False=PiCamera True= USB Webcam or RTSP,IP Camera
 
 # Web Camera Settings
-WEBCAM_SRC = 0         # Default= 0   USB camera device connection number
+WEBCAM_SRC = 2       # Default= 0   USB camera device connection number
                        # or RTSP cam string eg "rtsp://192.168.1.101/RtspTranslator.12/camera"
                        # see WIKI for details
 WEBCAM_WIDTH = 320     # Default= 320 USB Webcam Image width ignored for RTSP cam
