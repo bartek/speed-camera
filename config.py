@@ -113,7 +113,7 @@ image_font_size = 12          # Default= 12 Font text height in px for text on i
 image_font_scale = 0.5        # Default= 0.5 Font scale factor that is multiplied by the font-specific base size.
 image_font_thickness = 2      # Default= 2  Font text thickness in px for text on images
 image_font_color = (255, 255, 255)  # Default= (255, 255, 255) White
-image_bigger = 3.0            # Default= 3.0 min=0.1 Resize saved speed image by specified multiplier value
+image_bigger = 1.0            # Default= 3.0 min=0.1 Resize saved speed image by specified multiplier value
 image_max_files = 0           # 0=off or specify MaxFiles to maintain then oldest are deleted  Default=0 (off)
 
 image_sign_on = False

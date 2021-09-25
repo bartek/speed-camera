@@ -131,7 +131,7 @@ default_settings = {
     'image_font_thickness':2,
     'image_font_scale':0.5,
     'image_font_color': (255, 255, 255),
-    'image_bigger':3.0,
+    'image_bigger':1.0,
     'image_max_files':0,
     'imageSubDirMaxFiles':1000,
     'imageSubDirMaxHours':0,
