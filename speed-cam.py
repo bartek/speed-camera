@@ -64,12 +64,15 @@ import time
 import datetime
 import sys
 import glob
+import json
 import shutil
 import logging
 import sqlite3
 from threading import Thread
 import subprocess
 import numpy as np
+import urllib.parse
+import urllib.request
 
 """
 This is a dictionary of the default settings for speed-cam.py
@@ -397,6 +400,15 @@ else:
     speed_units = "kph"
     speed_conv_L2R = px_to_kph_L2R
     speed_conv_R2L = px_to_kph_R2L
+
+def geolocation():
+    url = "https://ipinfo.io"
+    f = urllib.request.urlopen(url)
+
+    d = json.loads(f.read().decode('utf-8'))
+    return d['loc'].split(",")
+
+geo_lat, geo_lon = geolocation()
 
 #------------------------------------------------------------------------------
 class PiVideoStream:
@@ -1451,6 +1463,8 @@ def speed_camera():
                                               image_bigger,
                                               travel_direction,
                                               plugin_name,
+                                              geo_lat,
+                                              geo_lon,
                                               track_x,
                                               track_y,
                                               track_w,
@@ -1487,6 +1501,8 @@ def speed_camera():
                                         image_bigger,
                                         direction,
                                         plugin_name,
+                                        latitude,
+                                        longitude,
                                         cx,
                                         cy,
                                         mw,
@@ -1502,7 +1518,7 @@ def speed_camera():
                                         cal_obj_px,
                                         cal_obj_mm,
                                         status,
-                                        cam_location) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''.format(DB_TABLE)
+                                        cam_location) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''.format(DB_TABLE)
                                     db_conn = db_check(DB_PATH)
                                     db_conn.execute(sql_cmd, speed_data)
                                     db_conn.commit()
